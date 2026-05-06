@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Nuhu Shitu Mohammed — Arcade Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap" rel="stylesheet"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0a0010;overflow:hidden;font-family:'Press Start 2P',monospace;}
+  #c{display:block;width:100vw;height:100vh;}
+
+  /* HUD */
+  #hud{
+    position:fixed;top:0;left:0;right:0;
+    display:flex;justify-content:space-between;align-items:center;
+    padding:1rem 2rem;
+    pointer-events:none;
+    z-index:10;
+  }
+  #hud .logo{
+    font-family:'Press Start 2P',monospace;
+    font-size:0.65rem;
+    color:#FFE600;
+    text-shadow:0 0 10px #FFE600,0 0 20px #FF6B00;
+    letter-spacing:0.05em;
+  }
+  #hud .coins{
+    font-family:'Press Start 2P',monospace;
+    font-size:0.6rem;
+    color:#FF6BFF;
+    text-shadow:0 0 8px #FF6BFF;
+  }
+  #hint{
+    position:fixed;bottom:2rem;left:50%;transform:translateX(-50%);
+    font-family:'Press Start 2P',monospace;
+    font-size:0.55rem;
+    color:#00FFCC;
+    text-shadow:0 0 10px #00FFCC;
+    text-align:center;
+    pointer-events:none;
+    z-index:10;
+    animation:blink 1.2s infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+
+  /* Scanlines */
+  #scanlines{
+    position:fixed;inset:0;
+    background:repeating-linear-gradient(
+      0deg,
+      transparent,transparent 2px,
+      rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px
+    );
+    pointer-events:none;z-index:5;
+  }
+
+  /* Panel overlay */
+  #panel{
+    position:fixed;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    z-index:20;
+    pointer-events:none;
+    opacity:0;
+    transition:opacity 0.4s;
+  }
+  #panel.open{opacity:1;pointer-events:all;}
+  #panel-bg{
+    position:absolute;inset:0;
+    background:rgba(5,0,20,0.88);
+    backdrop-filter:blur(6px);
+  }
+  #panel-box{
+    position:relative;
+    width:min(700px,90vw);
+    max-height:80vh;
+    overflow-y:auto;
+    background:#0D0020;
+    border:3px solid #FF6BFF;
+    box-shadow:0 0 30px #FF6BFF,inset 0 0 30px rgba(255,107,255,0.05);
+    padding:2.5rem;
+    animation:none;
+  }
+  #panel.open #panel-box{animation:panelIn 0.35s cubic-bezier(.17,.67,.35,1.2) forwards;}
+  @keyframes panelIn{
+    from{transform:scale(0.85) translateY(30px);opacity:0;}
+    to{transform:scale(1) translateY(0);opacity:1;}
+  }
+  #panel-title{
+    font-family:'Press Start 2P',monospace;
+    font-size:1rem;
+    color:#FFE600;
+    text-shadow:0 0 12px #FFE600;
+    margin-bottom:1.5rem;
+    padding-bottom:1rem;
+    border-bottom:2px solid #333;
+    display:flex;align-items:center;gap:1rem;
+  }
+  #panel-content{
+    font-family:'VT323',monospace;
+    font-size:1.25rem;
+    color:#e0d0ff;
+    line-height:1.7;
+  }
+  #panel-close{
+    position:absolute;top:1rem;right:1rem;
+    background:none;border:2px solid #FF6BFF;
+    color:#FF6BFF;
+    font-family:'Press Start 2P',monospace;
+    font-size:0.55rem;
+    padding:0.4rem 0.7rem;
+    cursor:pointer;
+    transition:all 0.15s;
+  }
+  #panel-close:hover{background:#FF6BFF;color:#0D0020;}
+
+  /* Panel content styles */
+  .p-section{margin-bottom:1.5rem;}
+  .p-label{
+    font-family:'Press Start 2P',monospace;
+    font-size:0.55rem;
+    color:#00FFCC;
+    text-shadow:0 0 8px #00FFCC;
+    margin-bottom:0.6rem;
+    letter-spacing:0.1em;
+  }
+  .p-text{color:#c8b8f0;font-size:1.2rem;line-height:1.6;}
+  .tags{display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem;}
+  .tag{
+    font-family:'Press Start 2P',monospace;
+    font-size:0.45rem;
+    padding:0.3rem 0.6rem;
+    border:1px solid #FF6BFF;
+    color:#FF6BFF;
+    background:rgba(255,107,255,0.08);
+  }
+  .tag.green{border-color:#00FFCC;color:#00FFCC;background:rgba(0,255,204,0.08);}
+  .tag.yellow{border-color:#FFE600;color:#FFE600;background:rgba(255,230,0,0.08);}
+  .proj-card{
+    border:2px solid #222;
+    padding:1rem;
+    margin-bottom:1rem;
+    background:rgba(255,255,255,0.02);
+    transition:border-color 0.2s;
+  }
+  .proj-card:hover{border-color:#FF6BFF;}
+  .proj-name{
+    font-family:'Press Start 2P',monospace;
+    font-size:0.6rem;
+    color:#FFE600;
+    margin-bottom:0.5rem;
+  }
+  .contact-link{
+    display:inline-block;
+    font-family:'Press Start 2P',monospace;
+    font-size:0.5rem;
+    color:#FFE600;
+    text-decoration:none;
+    border:2px solid #FFE600;
+    padding:0.5rem 1rem;
+    margin:0.4rem 0.3rem 0 0;
+    transition:all 0.15s;
+  }
+  .contact-link:hover{background:#FFE600;color:#0a0010;}
+
+  /* Pixel cursor */
+  *{cursor:none;}
+  #px-cursor{
+    position:fixed;width:16px;height:16px;
+    pointer-events:none;z-index:9999;
+    image-rendering:pixelated;
+    transform:translate(-2px,-2px);
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<div id="scanlines"></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="logo">NSM.DEV</div>
+  <div class="coins">▶ INSERT COIN ◀</div>
+</div>
+<div id="hint">CLICK AN OBJECT TO EXPLORE</div>
+
+<!-- Pixel cursor SVG -->
+<svg id="px-cursor" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="4" height="4" fill="#FFE600"/>
+  <rect x="4" y="4" width="4" height="4" fill="#FFE600"/>
+  <rect x="8" y="8" width="4" height="4" fill="#FFE600"/>
+  <rect x="4" y="0" width="2" height="12" fill="#FFE600"/>
+  <rect x="6" y="8" width="4" height="2" fill="#FFE600"/>
+  <rect x="10" y="10" width="4" height="2" fill="#FFE600"/>
+</svg>
+
+<!-- Panel -->
+<div id="panel">
+  <div id="panel-bg"></div>
+  <div id="panel-box">
+    <button id="panel-close">✕ CLOSE</button>
+    <div id="panel-title">TITLE</div>
+    <div id="panel-content"></div>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+// ── Cursor ───────────────────────────────────────────────────────────
+const pxCursor = document.getElementById('px-cursor');
+document.addEventListener('mousemove', e => {
+  pxCursor.style.left = e.clientX + 'px';
+  pxCursor.style.top  = e.clientY + 'px';
+});
+
+// ── Renderer ─────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({canvas:document.getElementById('c'), antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+// ── Scene / Camera ────────────────────────────────────────────────────
+const scene  = new THREE.Scene();
+scene.background = new THREE.Color(0x080012);
+scene.fog = new THREE.FogExp2(0x080012, 0.045);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 100);
+camera.position.set(0, 3.5, 9);
+camera.lookAt(0, 1, 0);
+
+// ── Helpers ───────────────────────────────────────────────────────────
+const mat = (color, emissive=0x000000, emissiveIntensity=0) =>
+  new THREE.MeshStandardMaterial({color, emissive, emissiveIntensity, roughness:0.7, metalness:0.1});
+
+const box = (w,h,d,material) => new THREE.Mesh(new THREE.BoxGeometry(w,h,d), material);
+
+// ── FLOOR — checkered ─────────────────────────────────────────────────
+const floorGeo = new THREE.PlaneGeometry(30,30,30,30);
+const floorCanvas = document.createElement('canvas');
+floorCanvas.width = floorCanvas.height = 512;
+const fCtx = floorCanvas.getContext('2d');
+const tileSize = 64;
+for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+  fCtx.fillStyle = (r+c)%2===0 ? '#180030' : '#0a0018';
+  fCtx.fillRect(c*tileSize, r*tileSize, tileSize, tileSize);
+}
+const floorTex = new THREE.CanvasTexture(floorCanvas);
+floorTex.wrapS = floorTex.wrapT = THREE.RepeatWrapping;
+floorTex.repeat.set(6,6);
+const floor = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({
+  map: floorTex, roughness:0.9, metalness:0.1
+}));
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// ── WALLS ─────────────────────────────────────────────────────────────
+const wallMat = new THREE.MeshStandardMaterial({color:0x0d0025, roughness:0.95});
+const backWall = box(30,10,0.3,wallMat);
+backWall.position.set(0,4,-8);
+scene.add(backWall);
+const leftWall = box(0.3,10,30,wallMat);
+leftWall.position.set(-10,4,0);
+scene.add(leftWall);
+const rightWall = box(0.3,10,30,wallMat);
+rightWall.position.set(10,4,0);
+scene.add(rightWall);
+const ceiling = box(30,0.3,30,new THREE.MeshStandardMaterial({color:0x080018}));
+ceiling.position.set(0,9,0);
+scene.add(ceiling);
+
+// ── NEON WALL SIGNS ───────────────────────────────────────────────────
+function makeNeonSign(text, color, x, y, z, rotY=0){
+  const cvs = document.createElement('canvas');
+  cvs.width=512; cvs.height=80;
+  const ctx = cvs.getContext('2d');
+  ctx.fillStyle='transparent';
+  ctx.font="bold 36px 'Courier New'";
+  ctx.shadowColor=color; ctx.shadowBlur=20;
+  ctx.fillStyle=color;
+  ctx.textAlign='center';
+  ctx.fillText(text, 256, 55);
+  const tex = new THREE.CanvasTexture(cvs);
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(4,0.65),
+    new THREE.MeshBasicMaterial({map:tex, transparent:true, side:THREE.DoubleSide})
+  );
+  plane.position.set(x,y,z);
+  plane.rotation.y = rotY;
+  scene.add(plane);
+}
+makeNeonSign('★ PORTFOLIO ★','#FF6BFF',-3, 7.2,-7.8);
+makeNeonSign('INSERT COIN','#FFE600', 3, 7.2,-7.8);
+makeNeonSign('PLAYER 1','#00FFCC',-9.5, 5, 0, Math.PI/2);
+makeNeonSign('HIGH SCORE','#FF6B6B', 9.5, 5, 0,-Math.PI/2);
+
+// ── LIGHTS ────────────────────────────────────────────────────────────
+const ambient = new THREE.AmbientLight(0x1a0035, 3);
+scene.add(ambient);
+
+function neonLight(color, x, y, z, intensity=8, dist=12){
+  const l = new THREE.PointLight(color, intensity, dist);
+  l.position.set(x,y,z);
+  scene.add(l);
+  return l;
+}
+const pinkLight  = neonLight(0xFF6BFF, -4, 5, -5, 12, 18);
+const yellowLight= neonLight(0xFFE600,  4, 5, -5, 10, 18);
+const cyanLight  = neonLight(0x00FFCC,  0, 5,  4,  6, 14);
+
+// ── INTERACTABLE OBJECTS ──────────────────────────────────────────────
+const interactables = [];
+
+// ─── Utility: pixel texture ───────────────────────────────────────────
+function pixelTex(drawFn, w=256, h=256){
+  const cv = document.createElement('canvas');
+  cv.width=w; cv.height=h;
+  drawFn(cv.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(cv);
+  t.magFilter = THREE.NearestFilter;
+  return t;
+}
+
+// ─── 1. ARCADE CABINET (Projects) ────────────────────────────────────
+function makeArcadeCabinet(x, z, rotY, label, color, panelKey){
+  const group = new THREE.Group();
+
+  // Body
+  const bodyMat = new THREE.MeshStandardMaterial({color:0x1a0035, roughness:0.6});
+  const body = box(1.1,2.2,0.7, bodyMat);
+  body.position.y = 1.1;
+  body.castShadow = true;
+  group.add(body);
+
+  // Screen
+  const screenTex = pixelTex((ctx,w,h) => {
+    ctx.fillStyle='#000';
+    ctx.fillRect(0,0,w,h);
+    ctx.fillStyle=color;
+    ctx.shadowColor=color; ctx.shadowBlur=20;
+    ctx.font="bold 28px 'Courier New'";
+    ctx.textAlign='center';
+    ctx.fillText(label, w/2, h/2-10);
+    ctx.font="16px 'Courier New'";
+    ctx.fillStyle='#aaa';
+    ctx.fillText('[ CLICK ME ]', w/2, h/2+20);
+    // Pixel scanlines
+    ctx.fillStyle='rgba(0,0,0,0.15)';
+    for(let i=0;i<h;i+=4) ctx.fillRect(0,i,w,2);
+  });
+  const screen = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.75,0.5),
+    new THREE.MeshBasicMaterial({map:screenTex})
+  );
+  screen.position.set(0,1.6,0.36);
+  group.add(screen);
+
+  // Marquee glow strip
+  const strip = box(1.12,0.12,0.08, new THREE.MeshStandardMaterial({
+    color, emissive:color, emissiveIntensity:2
+  }));
+  strip.position.set(0,2.27,0.31);
+  group.add(strip);
+
+  // Control panel bump
+  const cp = box(1.0,0.08,0.35, new THREE.MeshStandardMaterial({color:0x0d0020}));
+  cp.position.set(0,0.9,0.2);
+  cp.rotation.x = -0.3;
+  group.add(cp);
+
+  // Joystick
+  const joy = new THREE.Mesh(
+    new THREE.SphereGeometry(0.06,8,8),
+    new THREE.MeshStandardMaterial({color:0xFF2222, emissive:0xFF0000, emissiveIntensity:1})
+  );
+  joy.position.set(-0.15,0.98,0.2);
+  group.add(joy);
+
+  // Buttons
+  ['#FF6BFF','#FFE600','#00FFCC'].forEach((c,i) => {
+    const btn = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.05,0.05,0.04,8),
+      new THREE.MeshStandardMaterial({color:c, emissive:c, emissiveIntensity:1.5})
+    );
+    btn.position.set(0.1+i*0.14, 0.98, 0.22);
+    group.add(btn);
+  });
+
+  group.position.set(x,0,z);
+  group.rotation.y = rotY;
+  scene.add(group);
+
+  // Bounding box for raycasting — use body
+  body.userData = {panelKey, label, color};
+  interactables.push(body);
+
+  // Neon light near cabinet
+  const cl = new THREE.PointLight(color, 5, 5);
+  cl.position.set(x, 3, z+0.5);
+  scene.add(cl);
+
+  return {group, body};
+}
+
+makeArcadeCabinet(-3.5, -4, 0.3,  'PROJECTS', 0xFF6BFF, 'projects');
+makeArcadeCabinet( 3.5, -4, -0.3, 'SKILLS',   0x00FFCC, 'skills');
+
+// ─── 2. CRT MONITOR (Contact) ─────────────────────────────────────────
+{
+  const group = new THREE.Group();
+  const monMat = new THREE.MeshStandardMaterial({color:0x0f0020, roughness:0.5});
+
+  const monBody = box(1.6,1.2,0.9, monMat);
+  monBody.position.y = 0.7;
+  monBody.castShadow=true;
+  group.add(monBody);
+
+  const monNeck = box(0.3,0.25,0.25, monMat);
+  monNeck.position.y=0.0;
+  group.add(monNeck);
+
+  const monBase = box(1.0,0.08,0.7, new THREE.MeshStandardMaterial({color:0x150028}));
+  monBase.position.y=-0.12;
+  group.add(monBase);
+
+  const screenTex = pixelTex((ctx,w,h)=>{
+    ctx.fillStyle='#001a00';
+    ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#00FF41';
+    ctx.shadowColor='#00FF41'; ctx.shadowBlur=15;
+    ctx.font="bold 22px 'Courier New'";
+    ctx.textAlign='center';
+    ctx.fillText('CONTACT.EXE',w/2,60);
+    ctx.font="14px 'Courier New'";
+    ctx.fillText('> hello@nuhu.dev_',w/2,110);
+    ctx.fillText('> github.com/nuhu_',w/2,140);
+    ctx.fillStyle='rgba(0,255,65,0.3)';
+    for(let i=0;i<h;i+=3) ctx.fillRect(0,i,w,1);
+  });
+  const monScreen = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.2,0.85),
+    new THREE.MeshBasicMaterial({map:screenTex})
+  );
+  monScreen.position.set(0,0.75,0.46);
+  group.add(monScreen);
+
+  group.position.set(0,-0.1,-5.5);
+  scene.add(group);
+
+  monBody.userData={panelKey:'contact', label:'CONTACT', color:0x00FF41};
+  interactables.push(monBody);
+
+  const gl = new THREE.PointLight(0x00FF41,6,6);
+  gl.position.set(0,2,-5);
+  scene.add(gl);
+}
+
+// ─── 3. TROPHY / ABOUT ────────────────────────────────────────────────
+{
+  const group = new THREE.Group();
+
+  // Pedestal
+  const ped = box(0.9,0.15,0.9, new THREE.MeshStandardMaterial({color:0x1a0035,roughness:0.4,metalness:0.6}));
+  ped.position.y=0.075;
+  group.add(ped);
+
+  // Trophy cup body
+  const cupGeo = new THREE.CylinderGeometry(0.28,0.18,0.55,12);
+  const cup = new THREE.Mesh(cupGeo, new THREE.MeshStandardMaterial({
+    color:0xFFD700, emissive:0xFFAA00, emissiveIntensity:0.6, roughness:0.2, metalness:0.9
+  }));
+  cup.position.y=0.55;
+  group.add(cup);
+
+  // Trophy top rim
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(0.28,0.04,8,16),
+    new THREE.MeshStandardMaterial({color:0xFFD700, emissive:0xFFAA00, emissiveIntensity:0.8, metalness:0.9, roughness:0.1})
+  );
+  rim.position.y=0.83;
+  group.add(rim);
+
+  // Handles
+  [-1,1].forEach(side=>{
+    const handle = new THREE.Mesh(
+      new THREE.TorusGeometry(0.12,0.025,6,10, Math.PI),
+      new THREE.MeshStandardMaterial({color:0xFFD700, metalness:0.9, roughness:0.1})
+    );
+    handle.position.set(side*0.32, 0.65, 0);
+    handle.rotation.z = side * Math.PI/2;
+    group.add(handle);
+  });
+
+  // Star on top
+  const star = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.1),
+    new THREE.MeshStandardMaterial({color:0xFFE600, emissive:0xFFE600, emissiveIntensity:2})
+  );
+  star.position.y=1.0;
+  group.add(star);
+
+  // Label plate
+  const plateTex = pixelTex((ctx,w,h)=>{
+    ctx.fillStyle='#2a1000';
+    ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#FFD700';
+    ctx.shadowColor='#FFD700'; ctx.shadowBlur=10;
+    ctx.font="bold 28px 'Courier New'";
+    ctx.textAlign='center';
+    ctx.fillText('ABOUT ME',w/2,h/2+8);
+  },256,80);
+  const plate = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.7,0.22),
+    new THREE.MeshBasicMaterial({map:plateTex})
+  );
+  plate.position.set(0,0.32,0.46);
+  group.add(plate);
+
+  group.position.set(0, 0, -2);
+  scene.add(group);
+
+  cup.userData={panelKey:'about', label:'ABOUT ME', color:0xFFD700};
+  interactables.push(cup);
+
+  const tl = new THREE.PointLight(0xFFD700,8,6);
+  tl.position.set(0,3,-2);
+  scene.add(tl);
+}
+
+// ─── 4. GIANT FLOPPY DISK (Skills detail — already on cabinet, this is decoration) ─
+// Add a cool pixel art arcade machine on the back wall as decoration
+{
+  const wallDeco = pixelTex((ctx,w,h)=>{
+    ctx.fillStyle='#0a0018';
+    ctx.fillRect(0,0,w,h);
+    // Draw pixelated alien
+    const px=32;
+    const pixels=[
+      [0,0,1,0,0,0,1,0],
+      [0,0,0,1,1,0,0,0],
+      [0,1,1,1,1,1,1,0],
+      [1,1,0,1,1,0,1,1],
+      [1,1,1,1,1,1,1,1],
+      [1,0,1,1,1,1,0,1],
+      [1,0,1,0,0,1,0,1],
+      [0,0,0,1,1,0,0,0],
+    ];
+    pixels.forEach((row,r)=>{
+      row.forEach((p,c)=>{
+        if(p){
+          ctx.fillStyle='#FF6BFF';
+          ctx.shadowColor='#FF6BFF'; ctx.shadowBlur=8;
+          ctx.fillRect(16+c*px, 16+r*px, px-2, px-2);
+        }
+      });
+    });
+  },512,512);
+  const decoPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(2,2),
+    new THREE.MeshBasicMaterial({map:wallDeco, transparent:true})
+  );
+  decoPlane.position.set(0,4.5,-7.8);
+  scene.add(decoPlane);
+}
+
+// ── FLOATING PARTICLES ────────────────────────────────────────────────
+const particleGeo = new THREE.BufferGeometry();
+const N = 300;
+const positions = new Float32Array(N*3);
+const colors_arr = new Float32Array(N*3);
+const paletteCols = [
+  [1,0.42,1],[0,1,0.8],[1,0.9,0],[1,0.42,0.42]
+];
+for(let i=0;i<N;i++){
+  positions[i*3]   = (Math.random()-0.5)*18;
+  positions[i*3+1] = Math.random()*7;
+  positions[i*3+2] = (Math.random()-0.5)*18;
+  const c = paletteCols[Math.floor(Math.random()*paletteCols.length)];
+  colors_arr[i*3]=c[0]; colors_arr[i*3+1]=c[1]; colors_arr[i*3+2]=c[2];
+}
+particleGeo.setAttribute('position', new THREE.BufferAttribute(positions,3));
+particleGeo.setAttribute('color',    new THREE.BufferAttribute(colors_arr,3));
+const particles = new THREE.Points(particleGeo, new THREE.PointsMaterial({
+  size:0.06, vertexColors:true, transparent:true, opacity:0.7
+}));
+scene.add(particles);
+
+// ── RAYCASTER / CLICK ─────────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const mouse     = new THREE.Vector2();
+
+// Hover glow tracking
+let hoveredObj = null;
+const origEmissive = new Map();
+interactables.forEach(obj => {
+  const m = obj.material;
+  origEmissive.set(obj, {e: m.emissive ? m.emissive.clone() : new THREE.Color(0), ei: m.emissiveIntensity||0});
+});
+
+document.addEventListener('mousemove', e => {
+  mouse.x =  (e.clientX/innerWidth)*2 - 1;
+  mouse.y = -(e.clientY/innerHeight)*2 + 1;
+});
+
+// Panel content
+const panelData = {
+  projects: {
+    title:'🕹️ PROJECTS',
+    html:`
+    <div class="proj-card">
+      <div class="proj-name">3D EXPLORATION GAME</div>
+      <div class="p-text">A fully playable 3D exploration game built solo in Unity. Custom player controller, physics-based movement, enemy AI with state machines, and a full inventory system.</div>
+      <div class="tags">
+        <span class="tag">Unity 3D</span><span class="tag">C#</span><span class="tag green">State Machines</span><span class="tag green">Physics</span>
+      </div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-name">3D PUZZLE PLATFORMER</div>
+      <div class="p-text">Multi-level 3D puzzle platformer with interactive objects, checkpoint/save system, collectibles, and optimised performance via object pooling.</div>
+      <div class="tags">
+        <span class="tag">Unity 3D</span><span class="tag">C#</span><span class="tag green">Object Pooling</span><span class="tag green">Scene Management</span>
+      </div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-name">PORTFOLIO WEBSITE</div>
+      <div class="p-text">A responsive personal portfolio (this one!) featuring Three.js 3D scene, interactive retro arcade aesthetic, and clean mobile-first design.</div>
+      <div class="tags">
+        <span class="tag yellow">HTML</span><span class="tag yellow">CSS</span><span class="tag yellow">Three.js</span><span class="tag yellow">JS</span>
+      </div>
+    </div>`
+  },
+  skills: {
+    title:'💾 SKILLS',
+    html:`
+    <div class="p-section">
+      <div class="p-label">// LANGUAGES</div>
+      <div class="tags"><span class="tag">C#</span><span class="tag">C</span><span class="tag">Python</span><span class="tag yellow">JavaScript</span><span class="tag yellow">HTML</span><span class="tag yellow">CSS</span></div>
+    </div>
+    <div class="p-section">
+      <div class="p-label">// GAME DEVELOPMENT</div>
+      <div class="tags"><span class="tag green">Unity 3D</span><span class="tag green">Unity Physics</span><span class="tag green">Enemy AI</span><span class="tag green">Scene Management</span><span class="tag green">Asset Pipeline</span></div>
+    </div>
+    <div class="p-section">
+      <div class="p-label">// WEB DEVELOPMENT</div>
+      <div class="tags"><span class="tag yellow">Three.js</span><span class="tag yellow">Responsive Design</span><span class="tag yellow">REST APIs</span><span class="tag yellow">Node.js</span></div>
+    </div>
+    <div class="p-section">
+      <div class="p-label">// TOOLS</div>
+      <div class="tags"><span class="tag">Git & GitHub</span><span class="tag">Visual Studio</span><span class="tag">VS Code</span><span class="tag">Unity Editor</span></div>
+    </div>`
+  },
+  about: {
+    title:'🏆 ABOUT ME',
+    html:`
+    <div class="p-section">
+      <div class="p-label">// PLAYER STATS</div>
+      <div class="p-text">Name: <strong style="color:#FFE600">Nuhu Shitu Mohammed</strong><br>
+      Class: <strong style="color:#FFE600">Software Engineering, Year 4</strong><br>
+      Location: <strong style="color:#FFE600">Istanbul, Turkey 🇹🇷</strong><br>
+      Origin: <strong style="color:#FFE600">Nigeria 🇳🇬</strong><br>
+      Guild: <strong style="color:#FFE600">Altinbaş University</strong></div>
+    </div>
+    <div class="p-section">
+      <div class="p-label">// STORY</div>
+      <div class="p-text">I'm a game developer and software engineer who loves building things that move. Whether it's a player navigating a 3D level or a smooth web interaction — I write code that feels alive.<br><br>
+      Currently seeking a <strong style="color:#00FFCC">1-month tech internship</strong> where I can ship real things and grow fast.</div>
+    </div>
+    <div class="p-section">
+      <div class="p-label">// LANGUAGES SPOKEN</div>
+      <div class="tags"><span class="tag yellow">English</span><span class="tag green">Turkish</span><span class="tag">Hausa</span></div>
+    </div>`
+  },
+  contact: {
+    title:'📺 CONTACT',
+    html:`
+    <div class="p-section">
+      <div class="p-label">// SEND MESSAGE</div>
+      <div class="p-text">Looking to hire or collaborate? Let's connect!</div>
+    </div>
+    <div class="p-section">
+      <a class="contact-link" href="mailto:nuhu.mohammed@std.altinbas.edu.tr">✉ EMAIL ME</a>
+      <a class="contact-link" href="https://github.com/YOUR_USERNAME" target="_blank">◈ GITHUB</a>
+      <a class="contact-link" href="https://linkedin.com/in/YOUR_USERNAME" target="_blank">▣ LINKEDIN</a>
+    </div>
+    <div class="p-section">
+      <div class="p-label">// STATUS</div>
+      <div class="p-text" style="color:#00FFCC">● AVAILABLE FOR INTERNSHIP<br><span style="color:#888;font-size:1rem">Ready to start · 1 month · Flexible</span></div>
+    </div>`
+  }
+};
+
+// Open/close panel
+const panel      = document.getElementById('panel');
+const panelTitle = document.getElementById('panel-title');
+const panelContent = document.getElementById('panel-content');
+const panelClose = document.getElementById('panel-close');
+
+function openPanel(key){
+  const d = panelData[key];
+  if(!d) return;
+  panelTitle.innerHTML   = d.title;
+  panelContent.innerHTML = d.html;
+  panel.classList.add('open');
+}
+panelClose.addEventListener('click', ()=>panel.classList.remove('open'));
+document.getElementById('panel-bg').addEventListener('click', ()=>panel.classList.remove('open'));
+
+// Click handler
+window.addEventListener('click', () => {
+  if(panel.classList.contains('open')) return;
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(interactables);
+  if(hits.length > 0){
+    const key = hits[0].object.userData.panelKey;
+    if(key) openPanel(key);
+  }
+});
+
+// ── CAMERA IDLE ANIMATION ─────────────────────────────────────────────
+let camT = 0;
+const camOrigin = new THREE.Vector3(0, 3.5, 9);
+
+// ── RESIZE ────────────────────────────────────────────────────────────
+window.addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ── RENDER LOOP ───────────────────────────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate(){
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  // Camera gentle bob
+  if(!panel.classList.contains('open')){
+    camera.position.x = camOrigin.x + Math.sin(t*0.18)*0.25;
+    camera.position.y = camOrigin.y + Math.sin(t*0.24)*0.12;
+    camera.lookAt(0,1,0);
+  }
+
+  // Particle drift
+  const pos = particles.geometry.attributes.position.array;
+  for(let i=0;i<N;i++){
+    pos[i*3+1] += 0.003;
+    if(pos[i*3+1] > 7) pos[i*3+1] = 0;
+  }
+  particles.geometry.attributes.position.needsUpdate = true;
+
+  // Neon light flicker
+  pinkLight.intensity  = 10 + Math.sin(t*3.1)*1.5;
+  yellowLight.intensity= 8  + Math.sin(t*2.7+1)*1.2;
+
+  // Trophy star spin
+  scene.children.forEach(c=>{
+    if(c.geometry && c.geometry.type==='OctahedronGeometry'){
+      c.rotation.y = t*2;
+      c.rotation.x = t*1.3;
+    }
+  });
+
+  // Hover detection
+  raycaster.setFromCamera(mouse, camera);
+  const hits = raycaster.intersectObjects(interactables);
+  const hit  = hits.length > 0 ? hits[0].object : null;
+
+  if(hoveredObj && hoveredObj !== hit){
+    const orig = origEmissive.get(hoveredObj);
+    hoveredObj.material.emissive.set(orig.e);
+    hoveredObj.material.emissiveIntensity = orig.ei;
+    document.body.style.cursor='default';
+    hoveredObj = null;
+  }
+  if(hit && hit !== hoveredObj){
+    hoveredObj = hit;
+    hoveredObj.material.emissive = new THREE.Color(hit.userData.color||0xFF6BFF);
+    hoveredObj.material.emissiveIntensity = 0.6;
+    document.body.style.cursor='pointer';
+  }
+
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
